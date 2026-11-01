@@ -1,0 +1,457 @@
+/* maxflow network simulator - dark navy theme, may periwinkle accent */
+
+:root {
+  --bg: #05061a;
+  --line: rgba(255, 255, 255, .3);
+  --line-soft: rgba(255, 255, 255, .13);
+  --accent: #7f84f0;
+  --accent-hover: #979bf6;
+  --on-accent: #070826;
+  --ink: #ffffff;
+  --muted: #b9bbe0;
+  --danger: #ff9ea2;
+  --head: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Poppins", "Segoe UI", Arial, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* background: dark blue na may grid at blue glow, static sa lahat ng page */
+body::before {
+  content: "";
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px) 0 0 / 170px 170px,
+    linear-gradient(90deg, rgba(255, 255, 255, .045) 1px, transparent 1px) 0 0 / 170px 170px,
+    radial-gradient(ellipse at 50% 105%, #1c1f9a 0%, rgba(28, 31, 154, 0) 55%),
+    radial-gradient(ellipse at 50% -15%, #0f1155 0%, rgba(15, 17, 85, 0) 50%),
+    var(--bg);
+}
+
+/* HOME at ABOUT lang: dahan-dahang gumagalaw ang grid, may konting blue glow na lumilipat
+   (ang html[data-page] ay sine-set ng JS kapag nagpalit ng page) */
+html:is([data-page="home"], [data-page="about"]) body::before { animation: gridMove 24s linear infinite; }
+html:is([data-page="home"], [data-page="about"]) body::after,
+html:is([data-page="home"], [data-page="about"])::after {
+  content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
+}
+html:is([data-page="home"], [data-page="about"]) body::after {
+  background:
+    radial-gradient(circle at 25% 82%, rgba(40, 46, 220, .04), transparent 30%),
+    radial-gradient(circle at 72% 22%, rgba(30, 36, 170, .03), transparent 28%);
+  animation: glowDrift 22s ease-in-out infinite alternate;
+}
+html:is([data-page="home"], [data-page="about"])::after {
+  background:
+    radial-gradient(circle at 78% 78%, rgba(60, 76, 240, .035), transparent 28%),
+    radial-gradient(circle at 40% 45%, rgba(25, 30, 150, .03), transparent 32%);
+  animation: glowDrift2 28s ease-in-out infinite alternate;
+}
+
+/* canvas ng mga gumagalaw na node (JS), home at about lang */
+#bgCanvas { display: none; position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+html:is([data-page="home"], [data-page="about"]) #bgCanvas { display: block; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem;
+  padding: .9rem 3rem;
+  background: rgba(5, 6, 26, .75);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line-soft);
+}
+.brand { display: flex; align-items: center; gap: .7rem; text-decoration: none; color: var(--ink); font-weight: 600; font-size: .95rem; letter-spacing: .02em; }
+.logo { color: var(--accent); }
+nav { display: flex; gap: 2rem; }
+.nav-link { color: var(--ink); text-decoration: none; font-weight: 500; font-size: .92rem; padding: .2rem 0; }
+.nav-link:hover, .nav-link.current { color: var(--accent); }
+
+/* ---------- pages ---------- */
+.page { display: none; }
+.page.active { display: block; }
+.container { max-width: 1320px; margin: 0 auto; padding: 2rem 2rem 3rem; }
+.container.narrow { max-width: 1000px; }
+.page-title { font: 700 3.2rem/1.05 var(--head); margin: 0 0 1rem; }
+.lead { color: var(--muted); margin: 0 0 1.6rem; max-width: 70ch; }
+
+/* ---------- home ---------- */
+.hero {
+  position: relative;
+  min-height: calc(100vh - 62px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  padding: 3rem 2rem 7rem;
+  overflow: hidden;
+}
+.hero .logo.big { margin-bottom: 1rem; }
+.title-wrap { display: flex; align-items: center; justify-content: center; gap: 3rem; }
+.hero h1 { font: 700 clamp(3rem, 8vw, 6rem)/1.02 var(--head); margin: 0; max-width: 900px; }
+.dots {
+  width: 96px; height: 48px; flex: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, .5) 1.6px, transparent 2.2px) 0 0 / 16px 16px;
+}
+.pill {
+  max-width: 680px; margin: 2rem 0;
+  padding: 1.1rem 2.4rem; border-radius: 48px;
+  background: rgba(30, 34, 140, .22);
+  border: 1px solid rgba(127, 132, 240, .45);
+  box-shadow: none;
+  color: #e9eaff; font-size: 1.02rem;
+}
+.hero-foot { position: absolute; left: 3rem; right: 3rem; bottom: 2rem; display: flex; justify-content: space-between; text-align: left; }
+.credit { border-left: 3px solid var(--accent); padding-left: .8rem; }
+.credit.right { border-left: 0; border-right: 3px solid var(--accent); padding: 0 .8rem 0 0; text-align: right; }
+.credit small { display: block; font-size: .78rem; }
+.credit b { font-size: .82rem; text-transform: uppercase; letter-spacing: .05em; }
+.actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+.actions.center { justify-content: center; margin: 1.5rem 0 1rem; }
+
+/* ---------- buttons ---------- */
+.btn {
+  position: relative; overflow: hidden;
+  padding: .6rem 1.3rem;
+  border: 1px solid var(--accent); border-radius: 12px;
+  background: var(--accent); color: var(--on-accent);
+  font: 600 .95rem var(--body);
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(127, 132, 240, .4), 0 6px 20px rgba(127, 132, 240, .22);
+  transition: transform .2s, box-shadow .25s, border-color .2s, background-size .35s;
+}
+/* hover: lumiliwanag na gradient na gumagalaw, may glow at lift */
+.btn:hover {
+  background: linear-gradient(110deg, var(--accent), #a9adff 50%, var(--accent)) 0 0 / 200% 100%;
+  border-color: var(--accent-hover);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 0 26px rgba(151, 155, 246, .85), 0 10px 28px rgba(127, 132, 240, .4);
+  animation: shiftBg 1.4s linear infinite;
+}
+/* kapag pinindot: lumiliit nang konti */
+.btn:active { transform: translateY(0) scale(.96); }
+/* shine na dumadaan kapag hinover */
+.btn::after {
+  content: ""; position: absolute; top: 0; left: -80%; width: 45%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, .5), transparent);
+  transform: skewX(-20deg); pointer-events: none;
+}
+.btn:hover::after { animation: shine .8s ease; }
+/* outline: napupuno ng kulay mula kaliwa kapag hinover */
+.btn.outline {
+  background: transparent linear-gradient(rgba(127, 132, 240, .32), rgba(127, 132, 240, .32)) no-repeat 0 0 / 0% 100%;
+  color: var(--ink); border-color: var(--line); box-shadow: none;
+}
+.btn.outline:hover {
+  background: transparent linear-gradient(rgba(127, 132, 240, .32), rgba(127, 132, 240, .32)) no-repeat 0 0 / 100% 100%;
+  border-color: #fff; box-shadow: 0 0 22px rgba(255, 255, 255, .28); animation: none;
+}
+.btn.big { padding: .85rem 2.2rem; font-size: 1.02rem; }
+.btn.full { width: 100%; margin-top: .6rem; }
+.btn:focus-visible, input:focus-visible, select:focus-visible, .nav-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* click: ripple (galing sa JS) at ring na lumalabas */
+.ripple { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .6); transform: scale(0); animation: ripple .65s ease-out forwards; pointer-events: none; }
+.btn.outline .ripple { background: rgba(168, 172, 255, .55); }
+.btn.burst { animation: burst .6s ease-out !important; }
+
+/* ---------- cards ---------- */
+.card { background: rgba(255, 255, 255, .035); border: 1px solid var(--line); border-radius: 18px; padding: 1.3rem 1.5rem; margin-bottom: 1.4rem; }
+.card h3 { font: 700 1.7rem/1.1 var(--head); margin: 0 0 1rem; }
+.card p { margin: 0 0 .8rem; }
+
+/* ---------- simulator layout ---------- */
+.app-grid { display: grid; grid-template-columns: 340px 1fr; gap: 1.4rem; align-items: start; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+.side, .main-col { min-width: 0; }
+
+label { display: block; color: var(--accent); font-weight: 600; font-size: .85rem; margin: 1rem 0 .35rem; }
+label:first-of-type { margin-top: 0; }
+input, select {
+  width: 100%; padding: .55rem .7rem;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: rgba(255, 255, 255, .06); color: var(--ink);
+  font: .92rem var(--body);
+}
+input::placeholder { color: #9a9cc8; }
+select option { background: #0b0c33; color: #fff; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: .5rem; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 80px; gap: .5rem; }
+.row3.even { grid-template-columns: repeat(3, 1fr); }
+.row3.even .btn { padding-left: .3rem; padding-right: .3rem; }   /* para kasya at nasa gitna ang "Medium" */
+
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .7rem; max-height: 110px; overflow: auto; }
+.chip { display: inline-flex; align-items: center; gap: .3rem; padding: .1rem .3rem .1rem .75rem; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 20px; font-weight: 500; font-size: .88rem; }
+.chip button, .x { border: 0; background: none; color: var(--muted); font-size: 1.1rem; line-height: 1; cursor: pointer; padding: .1rem .4rem; }
+.chip button:hover, .x:hover { color: var(--danger); }
+
+.controls { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: .8rem; }
+.msg { min-height: 1.5rem; margin: 0 0 .5rem; color: var(--accent); font-weight: 500; }
+.msg.bad { color: var(--danger); }
+.note { font-size: .85rem; margin: .8rem 0 0; }
+.muted { color: var(--muted); }
+
+/* ---------- graph ---------- */
+#graph {
+  width: 100%; height: auto; display: block; touch-action: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, .09) 1px, transparent 1.5px) 0 0 / 28px 28px, #070929;
+  border: 1px solid var(--line); border-radius: 14px;
+}
+#graph .empty { text-anchor: middle; fill: var(--muted); font: 1.1rem var(--body); }
+.edge { fill: none; stroke: #6a6fa3; stroke-width: 1.8; }
+.edge.flow { stroke: #e4e5ff; stroke-width: 2.6; }
+.edge.active { stroke: var(--accent); stroke-width: 4.5; filter: drop-shadow(0 0 4px rgba(127, 132, 240, .9)); }
+.edge.back { stroke-dasharray: 7 5; }
+.elabel { text-anchor: middle; font: 600 15px var(--body); fill: #fff; paint-order: stroke; stroke: #070929; stroke-width: 5px; stroke-linejoin: round; }
+.elabel.small { font-size: 12px; stroke-width: 3px; }
+.node { cursor: grab; }
+.node circle { fill: #0b0d38; stroke: var(--accent); stroke-width: 2; }
+.node text { text-anchor: middle; dominant-baseline: central; font-family: var(--head); font-weight: 700; fill: #fff; pointer-events: none; }
+.node.src circle { fill: var(--accent); }
+.node.src text, .node.snk text { fill: var(--on-accent); }
+.node.snk circle { fill: #fff; stroke: #fff; }
+
+.legend { display: flex; flex-wrap: wrap; gap: .5rem 1.4rem; margin-top: .9rem; font-size: .82rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: .4rem; }
+.dot { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--accent); display: inline-block; }
+.dot.src { background: var(--accent); }
+.dot.snk { background: #fff; border-color: #fff; }
+.line { width: 26px; height: 0; display: inline-block; border-top: 3px solid; }
+.flowline { border-color: #e4e5ff; }
+.activeline { border-color: var(--accent); }
+.dashed { border-color: var(--accent); border-top-style: dashed; }
+
+/* ---------- tables ---------- */
+.scroll { overflow: auto; position: relative; scrollbar-color: #4a4e9c transparent; }
+.scroll.short { max-height: 170px; margin-top: .8rem; }
+.scroll.tall { max-height: 360px; }
+.scroll.mid { max-height: 280px; }
+table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+th { text-align: left; font-weight: 600; background: #14164a; position: sticky; top: 0; }
+th, td { padding: .5rem .6rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+tr.now td { background: rgba(127, 132, 240, .25); }
+.status { margin: .8rem 0 0; font-weight: 600; }
+.checks { margin: .8rem 0; padding-left: 1.2rem; font-size: .88rem; }
+.checks li { margin-bottom: .35rem; }
+.bigflow { color: var(--muted); }
+.bigflow span { font: 700 3.6rem/1 var(--head); color: var(--accent); margin-right: .5rem; }
+.cap td:first-child { text-transform: capitalize; }
+
+/* ---------- complexity ---------- */
+.split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.6rem; align-items: start; }
+.stats { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+.stats div { background: var(--accent); color: var(--on-accent); border-radius: 14px; padding: .7rem 1rem; }
+.stats div:last-child { grid-column: span 2; }
+.stats dt { font-size: .78rem; font-weight: 500; }
+.stats dd { margin: 0; font: 700 1.8rem/1.1 var(--head); }
+
+/* ---------- about ---------- */
+.devs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.1rem; margin-top: 1rem; }
+.dev { display: flex; align-items: center; gap: 1.1rem; padding: 1rem; border-radius: 18px; background: var(--accent); color: var(--on-accent); }
+.dev img { width: 104px; height: 104px; flex: none; object-fit: cover; object-position: center top; border-radius: 14px; border: 3px solid rgba(255, 255, 255, .6); background: #fff; }
+.dev b { display: block; font: 700 1.4rem/1.1 var(--head); }
+.dev span { display: block; font-size: .85rem; line-height: 1.35; margin-top: .3rem; }
+.badge { display: inline-block; margin-top: .5rem; padding: .1rem .75rem; border-radius: 999px; background: var(--on-accent); color: #fff; font-size: .74rem; font-style: normal; font-weight: 600; }
+.infos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+.info { display: grid; grid-template-columns: 32px 1fr; column-gap: .8rem; align-items: start; align-content: start; padding: 1rem 1.2rem; border: 1px solid var(--line); border-radius: 18px; }
+.info svg { width: 30px; height: 30px; color: var(--accent); grid-row: span 2; }
+.info h4 { margin: 0; color: var(--accent); font: 600 .95rem var(--body); }
+.info p { margin: 0; font-size: .86rem; color: #e6e7ff; }
+
+footer { text-align: center; padding: 1.4rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line-soft); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1100px) {
+  .app-grid, .two, .split { grid-template-columns: 1fr; }
+  .dots { display: none; }
+}
+@media (max-width: 700px) {
+  .topbar { padding: .8rem 1rem; }
+  .container { padding: 1.2rem 1rem; }
+  .devs { grid-template-columns: 1fr; }
+  .hero-foot { position: static; margin-top: 2rem; }
+  .hero { padding-bottom: 2rem; }
+}
+
+/* justified ang text sa simulator at about us */
+.lead, .card p, .note, .checks li { text-align: justify; hyphens: auto; }
+.card p.muted:first-of-type { text-align: left; }
+
+/* maliit na table para kasya sa sidebar */
+table.compact { font-size: .74rem; }
+table.compact th, table.compact td { padding: .4rem .3rem; }
+
+/* ================= effects ================= */
+
+/* ----- keyframes ----- */
+@keyframes glowDrift { from { transform: translate(-5%, -3%) scale(1); } to { transform: translate(5%, 4%) scale(1.12); } }
+@keyframes glowDrift2 { from { transform: translate(4%, 3%) scale(1.05); } to { transform: translate(-5%, -4%) rotate(-6deg) scale(1); } }
+@keyframes gridMove { to { background-position: 170px 170px, 170px 170px, 0 0, 0 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes shine { to { left: 140%; } }
+@keyframes shiftBg { to { background-position: -200% 0; } }
+@keyframes shimmer { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
+@keyframes breathe { 0%, 100% { box-shadow: 0 0 55px rgba(70, 74, 220, .3); } 50% { box-shadow: 0 0 80px rgba(100, 104, 250, .48); } }
+@keyframes pulseRing { 0% { box-shadow: 0 0 18px rgba(127, 132, 240, .55), 0 0 0 0 rgba(127, 132, 240, .55); } 70%, 100% { box-shadow: 0 0 18px rgba(127, 132, 240, .55), 0 0 0 20px rgba(127, 132, 240, 0); } }
+@keyframes twinkle { from { opacity: .3; } to { opacity: 1; } }
+@keyframes spinC { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes sweep { to { background-position: -200% 0; } }
+@keyframes edgePulse { from { filter: drop-shadow(0 0 3px rgba(127, 132, 240, .6)); } to { filter: drop-shadow(0 0 11px rgba(168, 172, 255, 1)); } }
+@keyframes rowFlash { from { background-color: rgba(170, 174, 255, .65); } }
+/* glow ng text: konting galaw lang */
+@keyframes titleGlow { from { filter: drop-shadow(0 0 14px rgba(127, 132, 240, .28)); } to { filter: drop-shadow(0 0 30px rgba(155, 160, 255, .6)); } }
+@keyframes textGlow { from { text-shadow: 0 0 6px rgba(190, 194, 255, .12); } to { text-shadow: 0 0 16px rgba(190, 194, 255, .5); } }
+/* wiggle: minimal lang, parang sa Canva */
+@keyframes wiggle { 0%, 100% { transform: translate(0, 0) rotate(-1.4deg); } 50% { transform: translate(2px, -5px) rotate(1.4deg); } }
+@keyframes wiggleSoft { 0%, 100% { transform: translate(0, 0) rotate(-.4deg); } 50% { transform: translate(0, -3px) rotate(.4deg); } }
+@keyframes drift { 0%, 100% { transform: translateX(-5px); } 50% { transform: translateX(5px); } }
+@keyframes nudge { 0%, 82%, 100% { transform: rotate(0); } 86% { transform: rotate(-2.2deg); } 90% { transform: rotate(2.2deg); } 94% { transform: rotate(-1.2deg); } 97% { transform: rotate(.8deg); } }
+/* click effects ng button */
+@keyframes ripple { from { transform: scale(0); opacity: .85; } to { transform: scale(1); opacity: 0; } }
+@keyframes burst { from { box-shadow: 0 0 0 0 rgba(168, 172, 255, .8), 0 0 26px rgba(151, 155, 246, .9); } to { box-shadow: 0 0 0 18px rgba(168, 172, 255, 0), 0 0 26px rgba(151, 155, 246, .2); } }
+
+/* mga pages: smooth na pasok */
+.page.active { animation: fade .5s ease both; }
+
+/* topbar: glow line na gumagalaw sa ilalim */
+.topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent, var(--accent), transparent);
+  background-size: 200% 100%;
+  animation: sweep 7s linear infinite;
+}
+.logo { filter: drop-shadow(0 0 6px rgba(127, 132, 240, .7)); }
+.brand:hover .logo { filter: drop-shadow(0 0 12px rgba(168, 172, 255, 1)); }
+
+/* nav: underline na lumalabas kapag hinover */
+.nav-link { position: relative; }
+.nav-link::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 2px;
+  background: var(--accent); box-shadow: 0 0 8px var(--accent);
+  transform: scaleX(0); transform-origin: left; transition: transform .3s;
+}
+.nav-link:hover::after, .nav-link.current::after { transform: scaleX(1); }
+
+/* ---------- home (at header ng about) ---------- */
+.hero > *:not(.hero-foot) { position: relative; z-index: 1; }
+.hero-foot { z-index: 1; }
+
+/* pasok ng mga element isa-isa, tapos minimal na wiggle */
+.hero .logo.big { filter: drop-shadow(0 0 16px rgba(127, 132, 240, .85)); animation: rise .9s .05s cubic-bezier(.2, .7, .2, 1) both, wiggle 7s ease-in-out 1.2s infinite; }
+.hero .title-wrap { animation: rise .9s .15s cubic-bezier(.2, .7, .2, 1) both; }
+.hero .pill { box-shadow: none; animation: rise .9s .3s cubic-bezier(.2, .7, .2, 1) both, wiggleSoft 8s ease-in-out 1.4s infinite; }
+.hero .actions { animation: rise .9s .45s cubic-bezier(.2, .7, .2, 1) both; }
+.hero .hero-foot { animation: fade 1.2s .8s both; }
+.hero .credit { animation: wiggleSoft 6s ease-in-out infinite; }
+.hero .credit.right { animation-delay: -3s; }
+.hero .credit b { animation: textGlow 4.5s ease-in-out infinite alternate; }
+
+/* title: shimmer + glow na gumagalaw nang slight */
+.hero h1 {
+  background: linear-gradient(100deg, #fff 0%, #fff 35%, #b4b8ff 50%, #fff 65%, #fff 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: shimmer 7s ease-in-out infinite, titleGlow 4.5s ease-in-out infinite alternate, wiggleSoft 9s ease-in-out infinite;
+}
+.dots { display: none; }
+
+/* buttons sa home: pulse ring + minsang nudge */
+.hero .btn.accent { animation: pulseRing 2.8s ease-out infinite, nudge 7s ease-in-out 2s infinite; }
+.hero .btn.outline { animation: nudge 7s ease-in-out 4.5s infinite; }
+.hero .btn.accent:hover { animation: shiftBg 1.4s linear infinite; }
+.hero .btn.outline:hover { animation: none; }
+
+/* about: kapareho ng home ang header, mas maliit lang */
+.hero.compact { min-height: 0; padding: 3.2rem 2rem 2.4rem; }
+.hero.compact h1 { font-size: clamp(2.8rem, 6vw, 4.8rem); }
+.hero .pill.wide { max-width: 860px; margin: 1.6rem 0 0; padding: 1.5rem 2.6rem; border-radius: 34px; text-align: justify; hyphens: auto;
+  box-shadow: 0 0 40px rgba(70, 74, 220, .22);
+  animation: rise .9s .3s cubic-bezier(.2, .7, .2, 1) both, breatheSoft 5s ease-in-out 1.3s infinite, wiggleSoft 8s ease-in-out 1.4s infinite, textGlowSoft 5s ease-in-out infinite alternate; }
+/* mas mahinang glow para sa about us */
+@keyframes breatheSoft { 0%, 100% { box-shadow: 0 0 34px rgba(70, 74, 220, .18); } 50% { box-shadow: 0 0 48px rgba(100, 104, 250, .3); } }
+@keyframes textGlowSoft { from { text-shadow: 0 0 4px rgba(190, 194, 255, .06); } to { text-shadow: 0 0 10px rgba(190, 194, 255, .28); } }
+.hero .pill.wide h3 { font: 700 1.6rem/1.1 var(--head); margin: 0 0 .7rem; text-align: center; }
+.hero .pill.wide p { margin: 0 0 .7rem; }
+.hero .pill.wide p:last-child { margin-bottom: 0; }
+
+/* ---------- simulator at about ---------- */
+.page-title {
+  width: fit-content;
+  background: linear-gradient(90deg, #fff 45%, #aeb2ff);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* cards: pasok na may delay, glow kapag hinover */
+.page.active .card { animation: rise .7s cubic-bezier(.2, .7, .2, 1) both; backdrop-filter: blur(4px); }
+.side > .card:nth-child(2), .main-col > .card:nth-child(2) { animation-delay: .08s; }
+.side > .card:nth-child(3), .main-col > .card:nth-child(3) { animation-delay: .16s; }
+.side > .card:nth-child(4), .main-col > .card:nth-child(4) { animation-delay: .24s; }
+.card { transition: border-color .3s, box-shadow .3s; }
+.card:hover { border-color: rgba(127, 132, 240, .65); box-shadow: 0 0 32px rgba(127, 132, 240, .16), inset 0 0 40px rgba(127, 132, 240, .04); }
+.card h3 { transition: text-shadow .3s; }
+.card h3:hover { text-shadow: 0 0 18px rgba(168, 172, 255, .75); }
+
+/* maikling text sa course info: left align para walang malaking gap */
+.info p { text-align: left; hyphens: none; }
+
+/* about: may glow din ang mga text, parang home */
+#page-about .card h3 { animation: textGlow 5s ease-in-out infinite alternate; }
+
+/* ----- glow kapag hinover (simulator) ----- */
+input, select { transition: border-color .25s, box-shadow .25s; }
+input:hover, select:hover { border-color: rgba(127, 132, 240, .75); box-shadow: 0 0 14px rgba(127, 132, 240, .25); }
+input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(127, 132, 240, .25); outline: none; }
+label { transition: color .2s, text-shadow .2s; }
+label:hover { color: #c9ccff; text-shadow: 0 0 10px rgba(127, 132, 240, .85); }
+.chip { transition: border-color .25s, box-shadow .25s; }
+.chip:hover { border-color: var(--accent); box-shadow: 0 0 14px rgba(127, 132, 240, .55); }
+.legend span { transition: color .25s, text-shadow .25s; }
+.legend span:hover { color: #fff; text-shadow: 0 0 10px rgba(168, 172, 255, .9); }
+.status, .checks li, .note { transition: text-shadow .25s; }
+.status:hover, .checks li:hover, .note:hover { text-shadow: 0 0 10px rgba(168, 172, 255, .55); }
+
+/* graph: glow sa nodes at edges */
+.node circle { filter: drop-shadow(0 0 5px rgba(127, 132, 240, .5)); transition: stroke-width .2s, filter .2s; }
+.node:hover circle { stroke-width: 3.5; filter: drop-shadow(0 0 11px rgba(168, 172, 255, 1)); }
+.node.src circle { filter: drop-shadow(0 0 10px rgba(127, 132, 240, .9)); }
+.node.snk circle { filter: drop-shadow(0 0 10px rgba(255, 255, 255, .7)); }
+.edge { transition: stroke .2s; }
+.edge:hover { stroke: #c9ccff; filter: drop-shadow(0 0 8px rgba(168, 172, 255, .95)); }
+.edge.active { animation: edgePulse 1.4s ease-in-out infinite alternate; }
+
+/* tables at results */
+tr.now td { animation: rowFlash 1.1s ease-out; }
+tbody tr { transition: background .2s; }
+tbody tr:hover td { background: rgba(127, 132, 240, .12); }
+.bigflow span { text-shadow: 0 0 24px rgba(127, 132, 240, .85); }
+
+/* stats, developer at info cards: lift + glow */
+.stats div { box-shadow: 0 0 18px rgba(127, 132, 240, .25); transition: transform .25s, box-shadow .25s; }
+.stats div:hover { transform: translateY(-3px); box-shadow: 0 8px 26px rgba(127, 132, 240, .55); }
+.dev { transition: transform .3s, box-shadow .3s; box-shadow: 0 0 20px rgba(127, 132, 240, .25); }
+.dev:hover { transform: translateY(-5px); box-shadow: 0 14px 36px rgba(127, 132, 240, .55); }
+.dev img { transition: transform .4s; }
+.dev:hover img { transform: scale(1.06); }
+.info { transition: border-color .3s, box-shadow .3s, transform .3s; }
+.info:hover { border-color: var(--accent); box-shadow: 0 0 24px rgba(127, 132, 240, .3); transform: translateY(-3px); }
+
+/* scrollbar at text selection */
+::selection { background: rgba(127, 132, 240, .5); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3f43a0; border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); background-clip: padding-box; }
+
+/* kung ayaw ng user ng motion, patayin ang animations */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
